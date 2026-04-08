@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def shm_create_from_tensor(tensor: torch.Tensor) -> _shm.SharedMemory:
     """Creates a SHM block and writes tensor data into it (optimized single copy)."""
-    t_cpu = tensor.cpu() if tensor.is_cuda else tensor
+    t_cpu = tensor.cpu()
     t_np = t_cpu.numpy().reshape(-1)
     size = t_np.nbytes
 
@@ -104,6 +104,9 @@ class ShmGetOperation(ShmOperation):
 
                 if self._dest_tensor.is_cuda:
                     torch.cuda.synchronize(self._dest_tensor.device)
+
+                if self._dest_tensor.is_npu:
+                    torch.npu.synchronize(self._dest_tensor.device)
 
             finally:
                 # 3. Cleanup (Receiver owns lifecycle)
