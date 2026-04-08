@@ -98,7 +98,7 @@ class Stage:
 
             gpu_id = config.get("gpu_id")
             if gpu_id is not None:
-                device = f"cuda:{gpu_id}"
+                device = f"npu:{gpu_id}"
             else:
                 device = "cpu"
                 if relay_type == "nccl":

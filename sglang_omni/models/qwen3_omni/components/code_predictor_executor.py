@@ -121,7 +121,7 @@ def _load_talker_model(model_path: str, gpu_id: int = 0):
 
     from sglang_omni.models.weight_loader import load_module, load_weights_by_prefix
 
-    device = f"cuda:{gpu_id}"
+    device = f"npu:{gpu_id}"
     cfg = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
 
     # 1. Create lightweight HF code predictor (with .generate() support)

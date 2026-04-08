@@ -61,6 +61,7 @@ async def main():
     print("=== Encoder Demo ===\n")
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = "npu:0"
 
     runner = SimpleRunner(device, torch.float32, input_dim=64, output_dim=256)
     scheduler = Scheduler(SchedulerConfig(max_batch_size=4, batch_timeout=0.05))

@@ -245,7 +245,7 @@ class _Code2WavStreamingExecutor(Executor):
 def create_code2wav_executor(
     model_path: str,
     *,
-    device: str = "cuda",
+    device: str = "npu",
     dtype: str | None = None,
     max_batch_size: int = 32,
     gpu_id: int | None = None,
@@ -255,7 +255,7 @@ def create_code2wav_executor(
     """Create Code2Wav executor that streams waveform chunks."""
     del max_batch_size
     if gpu_id is not None:
-        device = f"cuda:{gpu_id}"
+        device = f"npu:{gpu_id}"
     model = load_code2wav_model(model_path, device=device, dtype=dtype)
     return _Code2WavStreamingExecutor(
         model,

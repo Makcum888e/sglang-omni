@@ -174,6 +174,8 @@ class DirectModelExecutor(Executor):
     def _run_model(self, inputs: dict[str, Any]) -> Any:
         if self._device.type == "cuda":
             torch.cuda.set_device(self._device)
+        if self._device.type == "npu":
+            torch.npu.set_device(self._device)
         return self._model(**inputs)
 
     async def get_result(self) -> StagePayload:

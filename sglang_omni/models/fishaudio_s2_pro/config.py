@@ -38,12 +38,12 @@ class S2ProPipelineConfig(PipelineConfig):
             executor=ExecutorConfig(
                 factory=f"{_S2_PKG}.stages.create_sglang_tts_engine_executor",
                 args={
-                    "device": "cuda:0",
+                    "device": "npu:0",
                     "max_new_tokens": 2048,
                 },
             ),
             get_next=f"{_S2_PKG}.next_stage.tts_engine_next",
-            relay=RelayConfig(device="cuda"),
+            relay=RelayConfig(device="npu"),
         ),
         StageConfig(
             name=VOCODER_STAGE,

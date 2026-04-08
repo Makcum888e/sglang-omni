@@ -166,9 +166,9 @@ def _build_relay_config(
 def _parse_gpu_id(device: str) -> int | None:
     if device == "cpu":
         return None
-    if device == "cuda":
+    if device == "npu":
         return 0
-    if device.startswith("cuda:"):
+    if device.startswith("npu:"):
         index = device.split(":", 1)[1]
         if not index:
             raise ValueError("CUDA device index is required after 'cuda:'")

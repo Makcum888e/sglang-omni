@@ -184,6 +184,9 @@ async def main_async(args: argparse.Namespace) -> None:
     if "cuda" in args.asr_device:
         torch.cuda.set_device(args.asr_device)
         logger.info(f"Set ASR CUDA device to {args.asr_device}")
+    if "npu" in args.asr_device:
+        torch.npu.set_device(args.asr_device)
+        logger.info(f"Set ASR NPU device to {args.asr_device}")
 
     base_url = f"http://{args.host}:{args.port}"
     api_url = f"{base_url}/v1/chat/completions"

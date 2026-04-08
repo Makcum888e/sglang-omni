@@ -14,10 +14,11 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
-from sgl_kernel.flash_attn import flash_attn_with_kvcache
+#from sgl_kernel.flash_attn import flash_attn_with_kvcache
 
 # liger_kernel removed for inference
 from torch import Tensor
+import torch_npu
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, PreTrainedModel
 
@@ -58,6 +59,25 @@ def flash_attn_kvcache_op(
     causal: bool = False,
     num_splits: int = 0,
 ) -> torch.Tensor:
+    cache_seqlens = cache_seqlens - 1
+    torch_npu.npu_scatter_nd_update_(
+        k_cache,
+        cache_seqlens.view(-1, 1),
+        k,
+    )
+    torch_npu.npu_scatter_nd_update_(
+        v_cache,
+        cache_seqlens.view(-1, 1),
+        v,
+    )
+    return torch.ops.npu.npu_fused_infer_attention_score(
+        q,
+        k_cache,
+        v_cache,
+        num_heads=q.shape[2],
+        num_key_value_heads=k_cache.shape[2],
+        input_layout="BSND",
+    )[0]
     return flash_attn_with_kvcache(
         q=q,
         k_cache=k_cache,

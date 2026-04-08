@@ -68,8 +68,11 @@ def broadcast_pyobj(
 ):
     """Broadcast inputs from rank=0 to all other ranks with torch.dist backend."""
     device = torch.device(
-        "cuda" if torch.cuda.is_available() and not force_cpu_device else "cpu"
+        "cuda" if torch.cuda.is_available() else "cpu"
     )
+    device = torch.device("npu")
+    if force_cpu_device:
+        device = torch.device("cpu")
     if rank == src:
         if len(data) == 0:
             tensor_size = torch.tensor([0], dtype=torch.long, device=device)

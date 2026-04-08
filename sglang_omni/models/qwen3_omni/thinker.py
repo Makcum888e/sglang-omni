@@ -4,7 +4,8 @@ import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import torch
-from sgl_kernel import fused_qk_norm_rope
+#from sgl_kernel import fused_qk_norm_rope
+from sgl_kernel_npu.norm.split_qkv_rmsnorm_rope import split_qkv_rmsnorm_rope
 from torch import nn
 from transformers import PretrainedConfig
 
@@ -322,6 +323,32 @@ class Qwen3OmniMoeThinkerTextAttention(nn.Module):
             self._used_fused_set_kv_buffer_last_call = use_fused_set_kv_buffer
         return q, k, v
 
+    def forward_prepare_npu(
+        self,
+        positions: torch.Tensor,
+        hidden_states: torch.Tensor,
+        forward_batch: ForwardBatch,
+    ):
+        qkv, _ = self.qkv_proj(hidden_states)
+        if self.attn.layer_id == forward_batch.token_to_kv_pool.start_layer:
+            self.rotary_emb.get_cos_sin_with_position(positions)
+        q, k, v = split_qkv_rmsnorm_rope(
+            qkv,
+            self.rotary_emb.position_sin,
+            self.rotary_emb.position_cos,
+            self.q_size,
+            self.kv_size,
+            self.head_dim,
+            eps=self.q_norm.variance_epsilon,
+            q_weight=self.q_norm.weight,
+            k_weight=self.k_norm.weight,
+            q_bias=getattr(self.q_norm, "bias", None),
+            k_bias=getattr(self.k_norm, "bias", None),
+        )
+
+        inner_state = q, k, v, forward_batch
+        return None, forward_batch, inner_state
+
     def forward_prepare(
         self,
         positions: torch.Tensor,
@@ -330,6 +357,11 @@ class Qwen3OmniMoeThinkerTextAttention(nn.Module):
     ):
         if hidden_states.shape[0] == 0:
             return hidden_states, forward_batch, None
+        return self.forward_prepare_npu(
+            positions=positions,
+            hidden_states=hidden_states,
+            forward_batch=forward_batch,
+        )
         return self.forward_prepare_native(
             positions=positions,
             hidden_states=hidden_states,

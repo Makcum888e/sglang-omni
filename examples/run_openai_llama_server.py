@@ -45,7 +45,7 @@ DTYPE_MAP = {
 
 
 def _gpu_id_from_device(device: str) -> int | None:
-    if not device.startswith("cuda"):
+    if device.startswith("cpu"):
         return None
     if ":" in device:
         return int(device.split(":")[1])

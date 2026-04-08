@@ -331,7 +331,7 @@ def create_sglang_tts_engine_executor(
         local_rank_env = os.environ.get("LOCAL_RANK")
         if local_rank_env is not None:
             tp_rank = int(local_rank_env)
-            device = f"cuda:{tp_rank}"
+            device = f"npu:{tp_rank}"
             logger.info(
                 "Auto-detected LOCAL_RANK=%d: tp_rank=%d, device=%s",
                 tp_rank, tp_rank, device,
@@ -377,6 +377,7 @@ def create_sglang_tts_engine_executor(
 
     # Adjust memory fraction for TP (more GPUs = more memory per GPU available)
     mem_fraction = 0.85 if tp_size == 1 else 0.80
+    mem_fraction = 0.7
 
     server_args = ServerArgs(
         model_path=checkpoint_dir,
@@ -386,6 +387,7 @@ def create_sglang_tts_engine_executor(
         chunked_prefill_size=8192,
         max_running_requests=64,
         disable_cuda_graph=False,
+        device="npu",
     )
 
     engine = create_s2pro_sglang_engine(

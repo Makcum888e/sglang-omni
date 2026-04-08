@@ -216,6 +216,8 @@ def transcribe_audio(args: argparse.Namespace) -> None:
     generation_mode = "streaming" if args.stream else "non-streaming"
     if "cuda" in args.device:
         torch.cuda.set_device(args.device)
+    if "npu" in args.device:
+        torch.npu.set_device(args.device)
 
     meta_path = os.path.join(args.output_dir, "generated.json")
     with open(meta_path) as f:
