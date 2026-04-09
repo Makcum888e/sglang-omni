@@ -18,6 +18,7 @@ from sglang.srt.server_args import (
     ServerArgs,
     get_global_server_args,
 )
+from sglang.multimodal_gen.runtime.platforms import current_platform
 
 __all__ = [
     "Req",
@@ -32,4 +33,5 @@ __all__ = [
     "PortArgs",
     "ATTENTION_BACKEND_CHOICES",
     "GenerationBatchResult",
+    "current_platform",
 ]

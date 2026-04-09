@@ -8,7 +8,7 @@ import pickle
 import random
 import re
 from typing import Any, List, Optional
-
+from sglang_omni.vendor.sglang.core import current_platform
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -52,11 +52,7 @@ def add_prefix(name: str, prefix: str) -> str:
 
 def set_random_seed(seed: int) -> None:
     """Set the random seed for all libraries."""
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    curent_platform.seed_everything(seed)
 
 
 def broadcast_pyobj(
@@ -68,15 +64,12 @@ def broadcast_pyobj(
 ):
     """Broadcast inputs from rank=0 to all other ranks with torch.dist backend."""
     device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+        current_platform.device_type if not force_cpu_device else "cpu"
     )
-    device = torch.device("npu")
-    if force_cpu_device:
-        device = torch.device("cpu")
     if rank == src:
         if len(data) == 0:
             tensor_size = torch.tensor([0], dtype=torch.long, device=device)
-            dist.broadcast(tensor_size, src=0, group=dist_group)
+            dist.broadcast(tensor_size, src=src, group=dist_group)
         else:
             serialized_data = pickle.dumps(data)
             size = len(serialized_data)
@@ -86,19 +79,19 @@ def broadcast_pyobj(
             ).to(device)
             tensor_size = torch.tensor([size], dtype=torch.long, device=device)
 
-            dist.broadcast(tensor_size, src=0, group=dist_group)
-            dist.broadcast(tensor_data, src=0, group=dist_group)
+            dist.broadcast(tensor_size, src=src, group=dist_group)
+            dist.broadcast(tensor_data, src=src, group=dist_group)
         return data
     else:
         tensor_size = torch.tensor([0], dtype=torch.long, device=device)
-        dist.broadcast(tensor_size, src=0, group=dist_group)
+        dist.broadcast(tensor_size, src=src, group=dist_group)
         size = tensor_size.item()
 
         if size == 0:
             return []
 
         tensor_data = torch.empty(size, dtype=torch.uint8, device=device)
-        dist.broadcast(tensor_data, src=0, group=dist_group)
+        dist.broadcast(tensor_data, src=src, group=dist_group)
 
         serialized_data = bytes(tensor_data.cpu().numpy())
         data = pickle.loads(serialized_data)

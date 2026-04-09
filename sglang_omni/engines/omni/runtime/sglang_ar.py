@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import torch
 from sglang.srt.managers.scheduler import GenerationBatchResult
 from sglang.srt.mem_cache.common import release_kv_cache
+from sglang_omni.vendor.sglang.core import current_platform
 
 from ..types import (
     ModelRunnerOutput,
@@ -514,7 +515,7 @@ class SGLangModelRunner:
         self.model_worker = model_worker
         self.output_processor = output_processor
         self.batch_planner = batch_planner
-        self.device = torch.device(f"npu:{model_worker.gpu_id}")
+        self.device = current_platform.get_device(model_worker.gpu_id)
 
         model = model_worker.model_runner.model
         self._embed_tokens, self._inner_model = self._get_inner_model_components(model)
@@ -946,10 +947,7 @@ class SGLangModelRunner:
         )
 
         # Ensure correct CUDA device context when running in thread pool
-        if self.device.type == "cuda":
-            torch.cuda.set_device(self.device)
-        if self.device.type == "npu":
-            torch.npu.set_device(self.device)
+        current_platform.set_device(self.device)
 
         schedule_batch = scheduler_output.batch_data
 

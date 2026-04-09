@@ -9,7 +9,7 @@ import os
 from contextlib import suppress
 from operator import methodcaller
 from typing import Any, Callable
-
+from sglang_omni.vendor.sglang.core import current_platform
 from sglang_omni.pipeline.control_plane import StageControlPlane
 from sglang_omni.pipeline.stage.input import DirectInput, InputHandler
 from sglang_omni.pipeline.stage.router import WorkerRouter
@@ -98,7 +98,7 @@ class Stage:
 
             gpu_id = config.get("gpu_id")
             if gpu_id is not None:
-                device = f"npu:{gpu_id}"
+                device = f"{current_platform.device_type}:{gpu_id}"
             else:
                 device = "cpu"
                 if relay_type == "nccl":

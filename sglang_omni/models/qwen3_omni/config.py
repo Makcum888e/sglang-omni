@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from typing import ClassVar
-
+from sglang_omni.vendor.sglang.core import current_platform
 from sglang_omni.config import (
     ExecutorConfig,
     InputHandlerConfig,
@@ -45,24 +45,24 @@ class Qwen3OmniPipelineConfig(PipelineConfig):
             executor=ExecutorConfig(
                 factory="sglang_omni.models.qwen3_omni.pipeline.stages.create_image_encoder_executor",
                 args={
-                    "device": "npu",
+                    "device": current_platform.device_type,
                     "dtype": None,
                 },
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.encoder_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
         ),
         StageConfig(
             name=AUDIO_STAGE,
             executor=ExecutorConfig(
                 factory="sglang_omni.models.qwen3_omni.pipeline.stages.create_audio_encoder_executor",
                 args={
-                    "device": "npu",
+                    "device": current_platform.device_type,
                     "dtype": None,
                 },
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.encoder_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
         ),
         StageConfig(
             name=AGGREGATE_STAGE,
@@ -87,7 +87,7 @@ class Qwen3OmniPipelineConfig(PipelineConfig):
                 },
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.thinker_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
         ),
         StageConfig(
             name=DECODE_STAGE,
@@ -141,19 +141,19 @@ class Qwen3OmniSpeechPipelineConfig(PipelineConfig):
             name=IMAGE_STAGE,
             executor=ExecutorConfig(
                 factory="sglang_omni.models.qwen3_omni.pipeline.stages.create_image_encoder_executor",
-                args={"device": "npu", "dtype": None},
+                args={"device": current_platform.device_type, "dtype": None},
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.encoder_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
         ),
         StageConfig(
             name=AUDIO_STAGE,
             executor=ExecutorConfig(
                 factory="sglang_omni.models.qwen3_omni.pipeline.stages.create_audio_encoder_executor",
-                args={"device": "npu", "dtype": None},
+                args={"device": current_platform.device_type, "dtype": None},
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.encoder_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
         ),
         StageConfig(
             name=AGGREGATE_STAGE,
@@ -177,7 +177,7 @@ class Qwen3OmniSpeechPipelineConfig(PipelineConfig):
                 args={"thinker_max_seq_len": 8192, "speech_enabled": True},
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.thinker_next_speech",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
             stream_to=[StreamTargetConfig(to_stage=TALKER_AR_STAGE)],
         ),
         # Stage 6: Decode (terminal)
@@ -202,7 +202,7 @@ class Qwen3OmniSpeechPipelineConfig(PipelineConfig):
                 },
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.talker_ar_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
             stream_to=[StreamTargetConfig(to_stage=CODE_PREDICTOR_STAGE)],
         ),
         # Stage 8: Code Predictor (streaming: consumes chunks from Talker, sends chunks to Code2Wav)
@@ -213,7 +213,7 @@ class Qwen3OmniSpeechPipelineConfig(PipelineConfig):
                 args={"code_predictor_max_seq_len": 256},
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.code_predictor_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
             stream_to=[
                 StreamTargetConfig(to_stage=CODE2WAV_STAGE),
                 StreamTargetConfig(to_stage=TALKER_AR_STAGE, bootstrap=False),
@@ -224,10 +224,10 @@ class Qwen3OmniSpeechPipelineConfig(PipelineConfig):
             name=CODE2WAV_STAGE,
             executor=ExecutorConfig(
                 factory="sglang_omni.models.qwen3_omni.components.code2wav_executor.create_code2wav_executor",
-                args={"device": "npu"},
+                args={"device": current_platform.device_type},
             ),
             get_next="sglang_omni.models.qwen3_omni.pipeline.next_stage.code2wav_next",
-            relay=RelayConfig(device="npu"),
+            relay=RelayConfig(device=current_platform.device_type),
         ),
     ]
 

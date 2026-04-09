@@ -420,7 +420,7 @@ class MooncakeRelay(Relay):
 
         # Parse device ID
         self.device_id = 0
-        if ("cuda" in device or "npu" in device) and ":" in device:
+        if "cuda" in device and ":" in device:
             try:
                 self.device_id = int(device.split(":")[1])
             except ValueError:

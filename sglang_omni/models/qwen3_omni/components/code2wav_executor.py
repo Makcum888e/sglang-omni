@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 import torch
-
+from sglang_omni.vendor.sglang.core import current_platform
 from sglang_omni.executors import Executor
 from sglang_omni.proto import StagePayload
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def load_code2wav_model(
     model_path: str,
     *,
-    device: str = "cuda",
+    device: str = current_platform.device_type,
     dtype: str | None = None,
     weight_prefix: str = "code2wav.",
 ):
@@ -222,8 +222,7 @@ class _Code2WavStreamingExecutor(Executor):
         codes = window.transpose(0, 1).unsqueeze(0)
 
         with torch.no_grad():
-            if self._device.type == "cuda":
-                torch.cuda.set_device(self._device)
+            current_platform.set_device(self._device)
             wav = self._model(codes)
 
         trim = context_size * self._total_upsample
@@ -245,7 +244,7 @@ class _Code2WavStreamingExecutor(Executor):
 def create_code2wav_executor(
     model_path: str,
     *,
-    device: str = "npu",
+    device: str = current_platform.device_type,
     dtype: str | None = None,
     max_batch_size: int = 32,
     gpu_id: int | None = None,
@@ -255,7 +254,7 @@ def create_code2wav_executor(
     """Create Code2Wav executor that streams waveform chunks."""
     del max_batch_size
     if gpu_id is not None:
-        device = f"npu:{gpu_id}"
+        device = f"{current_platform.device_type}:{gpu_id}"
     model = load_code2wav_model(model_path, device=device, dtype=dtype)
     return _Code2WavStreamingExecutor(
         model,

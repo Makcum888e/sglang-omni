@@ -166,14 +166,12 @@ def _build_relay_config(
 def _parse_gpu_id(device: str) -> int | None:
     if device == "cpu":
         return None
-    if device == "npu":
-        return 0
-    if device.startswith("npu:"):
+    if ":" in device:
         index = device.split(":", 1)[1]
         if not index:
-            raise ValueError("CUDA device index is required after 'cuda:'")
+            raise ValueError("Device index is required after 'device:'")
         return int(index)
-    raise ValueError(f"Unsupported device string: {device}")
+    return 0
 
 
 def _allocate_endpoints(
