@@ -22,6 +22,7 @@ from sglang_omni.pipeline.stage.input import AggregatedInput, DirectInput
 from sglang_omni.pipeline.stage.runtime import Stage
 from sglang_omni.pipeline.stage.stream_queue import StreamQueue
 from sglang_omni.pipeline.tp_control import TPFollowerControlPlane, TPLeaderFanout
+from sglang_omni.platforms import current_platform
 from sglang_omni.utils.gpu_compat import (
     apply_gpu_compat_env_defaults,
     get_gpu_compat_env_defaults,
@@ -579,10 +580,8 @@ def _construct_stage(
 ) -> Stage:
     gpu_id = spec.gpu_id
     if gpu_id is not None:
-        import torch
-
-        torch.cuda.set_device(int(gpu_id))
-        log.info("Set current CUDA device to %s for stage %s", gpu_id, spec.stage_name)
+        current_platform.set_device(int(gpu_id))
+        log.info("Set current device to %s for stage %s", gpu_id, spec.stage_name)
 
     # --- Build scheduler via factory ---
     log.info(
@@ -795,7 +794,7 @@ def get_stage_process_env(
     env: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Return per-process env overrides needed before TP child startup."""
-    if spec.tp_size <= 1:
+    if spec.tp_size <= 1 or current_platform.is_npu():
         return {}
 
     source_env = env if env is not None else os.environ

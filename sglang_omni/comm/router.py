@@ -142,6 +142,8 @@ class CommRouter:
             if self.self_is_gpu and target in self.gpu_stage_names:
                 return TransportKind.CUDA_IPC
             return TransportKind.SHM
+        if "npu" in devices and devices <= {"cpu", "npu"}:
+            return TransportKind.SHM
         raise ValueError(f"mixed or unsupported tensor devices in payload: {devices}")
 
     def relay_for_stream(
