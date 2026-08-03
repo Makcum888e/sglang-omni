@@ -1,4 +1,5 @@
 import logging
+import os
 import pkgutil
 from importlib.metadata import entry_points
 
@@ -6,6 +7,7 @@ import torch
 from sglang.srt.environ import envs
 from sglang.srt.plugins import PLATFORM_PLUGINS_GROUP, load_plugins_by_group
 
+from sglang_omni.platforms.cpu import CPUOmniPlatform
 from sglang_omni.platforms.cuda import CUDAOmniPlatform
 from sglang_omni.platforms.interface import OmniPlatform
 from sglang_omni.platforms.npu import NPUOmniPlatform
@@ -21,6 +23,10 @@ def _is_cuda_available() -> bool:
 
 def _is_npu_available() -> bool:
     return bool(torch.npu.is_available())
+
+
+def _is_cpu_available() -> bool:
+    return os.getenv("SGLANG_USE_CPU_ENGINE", "0") == "1"
 
 
 def _resolve_platform() -> OmniPlatform:
@@ -39,6 +45,9 @@ def _resolve_platform() -> OmniPlatform:
 
        SGLANG_PLATFORM unset (auto-discover):
          - Import and activate all discovered plugins
+         - 0 activated + SGLANG_USE_CPU_ENGINE=1 → fallback CpuSRTPlatform
+           (checked first; an explicit opt-in wins over CUDA/ROCm availability,
+           so developers on GPU hosts can intentionally exercise the CPU path)
          - 0 activated + CUDA available → fallback CUDAOmniPlatform
          - 0 activated + NPU available → fallback NPUOmniPlatform
          - 0 activated + none of the above → fallback base OmniPlatform
@@ -92,6 +101,9 @@ def _resolve_platform() -> OmniPlatform:
             logger.exception("Failed to activate platform plugin: %s", name)
 
     if len(activated) == 0:
+        if _is_cpu_available():
+            logger.debug("SGLANG_USE_CPU_ENGINE=1. Using CPUOmniPlatform defaults.")
+            return CPUOmniPlatform()
         if _is_cuda_available():
             logger.debug(
                 "No platform plugin detected. Using CUDAOmniPlatform defaults."
