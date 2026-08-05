@@ -1,7 +1,7 @@
 """
 SGLang Omni Hardware Platform Abstraction.
 
-Defines Omnilatform — the base class for Omni platform backends.  OmniPlatform inherits DeviceMixin for shared device operations and adds Omni-specific subsystem factory methods, capability flags, and configuration lifecycle hooks.
+Defines OmniPlatform — the base class for Omni platform backends.  OmniPlatform inherits DeviceMixin for shared device operations and adds Omni-specific subsystem factory methods, capability flags, and configuration lifecycle hooks.
 """
 
 from sglang.srt.platforms.device_mixin import DeviceMixin
