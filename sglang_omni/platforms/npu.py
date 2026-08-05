@@ -1,7 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import torch
 from sglang.srt.platforms.device_mixin import PlatformEnum
 
 from sglang_omni.platforms.interface import OmniPlatform
+
+if TYPE_CHECKING:
+    from sglang_omni.pipeline.stage_workers import StageLaunchConfig
+
+from typing import Mapping
 
 
 class NPUOmniPlatform(OmniPlatform):
@@ -18,3 +27,10 @@ class NPUOmniPlatform(OmniPlatform):
 
     def set_device(self, device: "torch.device") -> None:
         torch.npu.set_device(device)
+
+    def get_stage_process_env(
+        self,
+        spec: StageLaunchConfig,
+        env: Mapping[str, str] | None = None,
+    ) -> dict[str, str]:
+        return {}

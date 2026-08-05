@@ -13,7 +13,7 @@ import time
 from collections.abc import Iterable
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping, Sequence
+from typing import Any, Literal, Sequence
 
 from sglang_omni.config.runtime import resolve_factory_signature_args
 from sglang_omni.pipeline.control_plane import StageControlPlane
@@ -144,7 +144,7 @@ def _get_worker_process_env(spec: StageWorkerProcessSpec) -> dict[str, str]:
             "stages; TP stages must own their OS process exclusively. "
             f"stage_specs={[s.stage_name for s in spec.stage_specs]}"
         )
-    return get_stage_process_env(tp_stages[0])
+    return current_platform.get_stage_process_env(tp_stages[0])
 
 
 @contextmanager
@@ -789,36 +789,6 @@ def _construct_scheduler(
         return factory(**factory_args)
 
 
-def get_stage_process_env(
-    spec: StageLaunchConfig,
-    env: Mapping[str, str] | None = None,
-) -> dict[str, str]:
-    """Return per-process env overrides needed before TP child startup."""
-    if spec.tp_size <= 1 or current_platform.is_npu():
-        return {}
-
-    source_env = env if env is not None else os.environ
-    original_visible = source_env.get("CUDA_VISIBLE_DEVICES")
-    if spec.gpu_id is None:
-        raise ValueError(f"tp stage {spec.stage_name!r} requires a GPU id")
-    if original_visible:
-        visible_devices = [item.strip() for item in original_visible.split(",")]
-        if spec.gpu_id >= len(visible_devices):
-            raise ValueError(
-                f"tp stage {spec.stage_name!r} assigned gpu_id={spec.gpu_id}, "
-                f"but CUDA_VISIBLE_DEVICES only exposes {visible_devices}"
-            )
-        mapped_gpu = visible_devices[spec.gpu_id]
-    else:
-        mapped_gpu = str(spec.gpu_id)
-
-    return {
-        "CUDA_VISIBLE_DEVICES": mapped_gpu,
-        "SGLANG_ONE_VISIBLE_DEVICE_PER_PROCESS": "true",
-        "SGLANG_ENABLE_TP_MEMORY_INBALANCE_CHECK": "false",
-    }
-
-
 def _prepare_cuda_environment(
     spec: StageLaunchConfig,
     log: logging.Logger,
@@ -835,7 +805,7 @@ def _prepare_cuda_environment(
         )
         return
 
-    env_updates = get_stage_process_env(spec)
+    env_updates = current_platform.get_stage_process_env(spec)
     if not env_updates:
         return
 

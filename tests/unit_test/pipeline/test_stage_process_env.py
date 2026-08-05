@@ -12,8 +12,8 @@ from sglang_omni.pipeline.stage_workers import (
     StageLaunchConfig,
     StageWorkerProcessSpec,
     _patched_spawn_env,
-    get_stage_process_env,
 )
+from sglang_omni.platforms import current_platform
 from tests.unit_test.fixtures.pipeline_fakes import FakeScheduler, fake_factory_path
 
 
@@ -35,7 +35,9 @@ def _worker_spec(*stage_specs: StageLaunchConfig) -> StageWorkerProcessSpec:
 
 
 def test_tp_process_env_maps_logical_gpu_through_visible_devices() -> None:
-    env = get_stage_process_env(_tp_spec(gpu_id=1), {"CUDA_VISIBLE_DEVICES": "3,4"})
+    env = current_platform.get_stage_process_env(
+        _tp_spec(gpu_id=1), {"CUDA_VISIBLE_DEVICES": "3,4"}
+    )
 
     assert env["CUDA_VISIBLE_DEVICES"] == "4"
     assert env["SGLANG_ONE_VISIBLE_DEVICE_PER_PROCESS"] == "true"
@@ -43,12 +45,16 @@ def test_tp_process_env_maps_logical_gpu_through_visible_devices() -> None:
 
 def test_tp_process_env_rejects_single_visible_device_for_second_gpu() -> None:
     with pytest.raises(ValueError, match="CUDA_VISIBLE_DEVICES only exposes"):
-        get_stage_process_env(_tp_spec(gpu_id=1), {"CUDA_VISIBLE_DEVICES": "0"})
+        current_platform.get_stage_process_env(
+            _tp_spec(gpu_id=1), {"CUDA_VISIBLE_DEVICES": "0"}
+        )
 
 
 def test_tp_process_env_requires_gpu_id() -> None:
     with pytest.raises(ValueError, match="requires a GPU id"):
-        get_stage_process_env(StageLaunchConfig(stage_name="thinker", tp_size=2), {})
+        current_platform.get_stage_process_env(
+            StageLaunchConfig(stage_name="thinker", tp_size=2), {}
+        )
 
 
 def test_tp_child_keeps_parent_mapped_visible_device(monkeypatch) -> None:
