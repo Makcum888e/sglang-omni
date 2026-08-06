@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pkgutil
@@ -11,6 +12,7 @@ from sglang_omni.platforms.cpu import CPUOmniPlatform
 from sglang_omni.platforms.cuda import CUDAOmniPlatform
 from sglang_omni.platforms.interface import OmniPlatform
 from sglang_omni.platforms.npu import NPUOmniPlatform
+from sglang_omni.platforms.spec import ResolvedPlatformSpec
 
 logger = logging.getLogger(__name__)
 
@@ -138,13 +140,18 @@ def _load_platform_class(qualname: str) -> type:
 
 
 current_platform: OmniPlatform
+platform_spec = os.environ.get("SGLANG_OMNI_PLATFORM_SPEC")
 
+if platform_spec:
+    spec = ResolvedPlatformSpec(**json.loads(platform_spec))
+    if spec.platform_type == "cuda":
+        current_platform = CUDAOmniPlatform()
+    elif spec.platform_type == "npu":
+        current_platform = NPUOmniPlatform()
+    elif spec.platform_type == "cpu":
+        current_platform = CPUOmniPlatform()
+    else:
+        current_platform = OmniPlatform()
 
-def __getattr__(name: str):
-    """Lazy initialization of current_platform on first access."""
-    if name == "current_platform":
-        global _current_platform
-        if _current_platform is None:
-            _current_platform = _resolve_platform()
-        return _current_platform
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+else:
+    current_platform = _resolve_platform()

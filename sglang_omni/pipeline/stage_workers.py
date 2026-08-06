@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import gc
+import json
 import logging
 import multiprocessing
 import os
@@ -169,10 +170,15 @@ def _patched_spawn_env(spec: StageWorkerProcessSpec):
             **worker_process_env,
         }
     )
+    platform_spec_dict = {
+        "platform_type": current_platform.device_name,
+        "device_type": current_platform.device_type,
+    }
     updates = {
         **env_default_updates,
         **compat_env_defaults,
         **worker_process_env,
+        "SGLANG_OMNI_PLATFORM_SPEC": json.dumps(platform_spec_dict),
     }
     if not updates:
         yield
