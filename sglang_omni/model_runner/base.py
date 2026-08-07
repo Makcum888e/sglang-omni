@@ -392,7 +392,7 @@ class ModelRunner:
             ForwardBatch,
         )
 
-        current_platform.set_device(self.device)
+        torch.get_device_module(self.device).set_device(self.device)
 
         schedule_batch = scheduler_output.batch_data
         if schedule_batch is None:
