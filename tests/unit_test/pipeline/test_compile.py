@@ -15,7 +15,7 @@ from sglang_omni.pipeline.mp_runner import (
     _resolve_same_process_targets,
 )
 from sglang_omni.pipeline.runtime_config import prepare_pipeline_runtime
-from sglang_omni.platforms.cuda import CUDAOmniPlatform
+from sglang_omni.platforms import current_platform
 from tests.unit_test.fixtures.pipeline_fakes import FakeMpContext, fake_factory_path
 from tests.unit_test.pipeline.helpers import stage
 
@@ -475,7 +475,7 @@ def test_mp_runner_preserves_tp_rank_and_visible_device_contracts(tmp_path) -> N
         assert prep.runtime_dir is not None
         prep.runtime_dir.close()
     leader, follower = group.specs
-    env = CUDAOmniPlatform().get_stage_process_env(
+    env = current_platform.get_stage_process_env(
         follower, env={"CUDA_VISIBLE_DEVICES": "4,5,6,7"}
     )
 

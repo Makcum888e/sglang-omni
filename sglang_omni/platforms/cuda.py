@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from sglang.srt.platforms.cuda import CudaDeviceMixin
-from sglang.srt.platforms.rocm import RocmDeviceMixin
 
 from sglang_omni.platforms.interface import OmniPlatform
 
 if TYPE_CHECKING:
     from sglang_omni.pipeline.stage_workers import StageLaunchConfig
 
+from typing import Mapping
+
 
 class CUDAOmniPlatform(CudaDeviceMixin, OmniPlatform):
+
+    def get_device_str(self, local_rank: int) -> str:
+        return f"cuda:{local_rank}"
+
     def get_stage_process_env(
         self,
         spec: StageLaunchConfig,
@@ -42,7 +46,3 @@ class CUDAOmniPlatform(CudaDeviceMixin, OmniPlatform):
             "SGLANG_ONE_VISIBLE_DEVICE_PER_PROCESS": "true",
             "SGLANG_ENABLE_TP_MEMORY_INBALANCE_CHECK": "false",
         }
-
-
-class ROCMOmniPlatform(RocmDeviceMixin, CUDAOmniPlatform):
-    pass

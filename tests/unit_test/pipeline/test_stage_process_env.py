@@ -13,10 +13,8 @@ from sglang_omni.pipeline.stage_workers import (
     StageWorkerProcessSpec,
     _patched_spawn_env,
 )
-from sglang_omni.platforms.cuda import CUDAOmniPlatform
+from sglang_omni.platforms import current_platform
 from tests.unit_test.fixtures.pipeline_fakes import FakeScheduler, fake_factory_path
-
-cuda_platform = CUDAOmniPlatform()
 
 
 def _tp_spec(*, gpu_id: int) -> StageLaunchConfig:
@@ -37,7 +35,7 @@ def _worker_spec(*stage_specs: StageLaunchConfig) -> StageWorkerProcessSpec:
 
 
 def test_tp_process_env_maps_logical_gpu_through_visible_devices() -> None:
-    env = cuda_platform.get_stage_process_env(
+    env = current_platform.get_stage_process_env(
         _tp_spec(gpu_id=1), {"CUDA_VISIBLE_DEVICES": "3,4"}
     )
 
@@ -47,14 +45,14 @@ def test_tp_process_env_maps_logical_gpu_through_visible_devices() -> None:
 
 def test_tp_process_env_rejects_single_visible_device_for_second_gpu() -> None:
     with pytest.raises(ValueError, match="CUDA_VISIBLE_DEVICES only exposes"):
-        cuda_platform.get_stage_process_env(
+        current_platform.get_stage_process_env(
             _tp_spec(gpu_id=1), {"CUDA_VISIBLE_DEVICES": "0"}
         )
 
 
 def test_tp_process_env_requires_gpu_id() -> None:
     with pytest.raises(ValueError, match="requires a GPU id"):
-        cuda_platform.get_stage_process_env(
+        current_platform.get_stage_process_env(
             StageLaunchConfig(stage_name="thinker", tp_size=2), {}
         )
 
@@ -111,7 +109,6 @@ def test_spawn_env_preserves_operator_stage_defaults(monkeypatch) -> None:
 def test_spawn_env_combines_stage_defaults_with_tp_visible_device(monkeypatch) -> None:
     monkeypatch.delenv("SGLANG_TEST_STAGE_ENV", raising=False)
     monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "3,4")
-    monkeypatch.setattr(stage_workers, "current_platform", cuda_platform)
     stage_spec = _tp_spec(gpu_id=1)
     stage_spec.env_defaults = {"SGLANG_TEST_STAGE_ENV": "default"}
 
@@ -214,7 +211,6 @@ def test_construct_stage_uses_placement_gpu_id_for_device_and_startup_lock(
     )
     monkeypatch.setattr(stage_workers, "gpu_startup_lock", _fake_lock)
     monkeypatch.setattr(stage_workers, "Stage", _FakeStage)
-    monkeypatch.setattr(stage_workers, "current_platform", cuda_platform)
 
     specs = [
         StageLaunchConfig(
