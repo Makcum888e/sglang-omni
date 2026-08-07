@@ -1,157 +1,63 @@
-import json
-import logging
 import os
 import pkgutil
-from importlib.metadata import entry_points
 
 import torch
-from sglang.srt.environ import envs
-from sglang.srt.plugins import PLATFORM_PLUGINS_GROUP, load_plugins_by_group
+from sglang.srt import platforms as srt_platforms
+from sglang.srt.platforms.interface import SRTPlatform
 
 from sglang_omni.platforms.cpu import CPUOmniPlatform
-from sglang_omni.platforms.cuda import CUDAOmniPlatform
+from sglang_omni.platforms.cuda import CUDAOmniPlatform, ROCMOmniPlatform
 from sglang_omni.platforms.interface import OmniPlatform
 from sglang_omni.platforms.npu import NPUOmniPlatform
-from sglang_omni.platforms.spec import ResolvedPlatformSpec
-
-logger = logging.getLogger(__name__)
-
-_current_platform: OmniPlatform | None = None
-
-
-def _is_cuda_available() -> bool:
-    return bool(torch.cuda.is_available() and torch.version.hip is None)
 
 
 def _is_npu_available() -> bool:
-    return bool(torch.npu.is_available())
+    try:
+        npu = torch.npu
+    except AttributeError:
+        return False
+    return bool(npu.is_available())
 
 
-def _is_cpu_available() -> bool:
-    return os.getenv("SGLANG_USE_CPU_ENGINE", "0") == "1"
-
-
-def _resolve_platform() -> OmniPlatform:
-    """
-    Discover and instantiate the active platform.
-
-    Discovery flow:
-    1. Branch on SGLANG_PLATFORM:
-
-       SGLANG_PLATFORM set (front-loading filter):
-         - Enumerate entry_points without importing any plugin modules
-         - Only ep.load() + activate() the named plugin
-         - Other plugins are never imported (avoids pulling their dependencies)
-         - Plugin name not found → RuntimeError
-         - activate() returns None → RuntimeError (hardware unavailable)
-
-       SGLANG_PLATFORM unset (auto-discover):
-         - Import and activate all discovered plugins
-         - 0 activated + SGLANG_USE_CPU_ENGINE=1 → fallback CpuSRTPlatform
-           (checked first; an explicit opt-in wins over CUDA/ROCm availability,
-           so developers on GPU hosts can intentionally exercise the CPU path)
-         - 0 activated + CUDA available → fallback CUDAOmniPlatform
-         - 0 activated + NPU available → fallback NPUOmniPlatform
-         - 0 activated + none of the above → fallback base OmniPlatform
-         - 1 activated → use it
-         - N activated → RuntimeError (must set SGLANG_PLATFORM)
-
-       SGLANG_PLATFORM matches against entry_point names.
-    """
-    selected = envs.SGLANG_PLATFORM.get()
-
-    if selected:
-        # Front-loading filter: only import and activate the specified plugin.
-        # Other plugins' modules are never loaded — avoids pulling their deps.
-        discovered = entry_points(group=PLATFORM_PLUGINS_GROUP)
-        ep_map = {ep.name: ep for ep in discovered}
-
-        if selected not in ep_map:
-            available = ", ".join(f"'{n}'" for n in ep_map) if ep_map else "none"
-            raise RuntimeError(
-                f"SGLANG_PLATFORM={selected!r} not found in discovered platform plugins "
-                f"(available: {available}). Install the plugin with 'pip install -e' "
-                f"to register its entry_points."
-            )
-
-        try:
-            plugin_fn = ep_map[selected].load()
-            result = plugin_fn()
-        except Exception:
-            logger.exception("Failed to activate platform plugin: %s", selected)
-            raise
-
-        if result is None:
-            raise RuntimeError(
-                f"Platform plugin {selected!r} is installed but activate() returned None "
-                f"(hardware not available on this machine?)."
-            )
-        logger.info("OOT platform plugin activated: %s -> %s", selected, result)
-        return _load_platform_class(result)()
-
-    # Auto-discover: import and activate all plugins, expect exactly one
-    all_plugins = load_plugins_by_group(PLATFORM_PLUGINS_GROUP)
-
-    activated: dict[str, str] = {}
-    for name, (plugin_fn, _dist) in all_plugins.items():
-        try:
-            result = plugin_fn()
-            if result is not None:
-                activated[name] = result
-                logger.info("OOT platform plugin activated: %s -> %s", name, result)
-        except Exception:
-            logger.exception("Failed to activate platform plugin: %s", name)
-
-    if len(activated) == 0:
-        if _is_cpu_available():
-            logger.debug("SGLANG_USE_CPU_ENGINE=1. Using CPUOmniPlatform defaults.")
-            return CPUOmniPlatform()
-        if _is_cuda_available():
-            logger.debug(
-                "No platform plugin detected. Using CUDAOmniPlatform defaults."
-            )
-            return CUDAOmniPlatform()
-        if _is_npu_available():
-            logger.debug("No platform plugin detected. Using NPUOmniPlatform defaults.")
-            return NPUOmniPlatform()
-        logger.debug("No platform detected. Using base SRTPlatform.")
-        return OmniPlatform()
-
-    if len(activated) == 1:
-        name, qualname = next(iter(activated.items()))
-        return _load_platform_class(qualname)()
-
-    # Multiple activated without SGLANG_PLATFORM
-    names_str = ", ".join(f"'{n}'" for n in activated)
-    raise RuntimeError(
-        f"Multiple platform plugins activated: {names_str}. "
-        f"Set SGLANG_PLATFORM to select one."
+def _load_platform_class(qualname: str) -> type[OmniPlatform]:
+    cls = pkgutil.resolve_name(qualname)
+    if not isinstance(cls, type):
+        raise TypeError(f"Expected a platform class, got {type(cls)}: {qualname}")
+    if issubclass(cls, OmniPlatform):
+        return cls
+    if not issubclass(cls, SRTPlatform):
+        raise TypeError(f"Expected an SRTPlatform subclass: {qualname}")
+    return type(
+        f"Omni{cls.__name__}",
+        (cls, OmniPlatform),
+        {"_omni_platform_qualname": qualname},
     )
 
 
-def _load_platform_class(qualname: str) -> type:
-    """Load an SRTPlatform subclass from its fully-qualified class name."""
-    cls = pkgutil.resolve_name(qualname)
-    if not isinstance(cls, type) or not issubclass(cls, OmniPlatform):
-        raise TypeError(
-            f"Expected an SRTPlatform subclass, got {type(cls)}: {qualname}"
-        )
-    return cls
+def _as_omni_platform(platform: SRTPlatform) -> OmniPlatform:
+    if platform.is_cuda():
+        return CUDAOmniPlatform()
+    if platform.is_rocm():
+        return ROCMOmniPlatform()
+    if platform.is_cpu():
+        return CPUOmniPlatform()
+    if type(platform) is SRTPlatform and _is_npu_available():
+        return NPUOmniPlatform()
+    qualname = f"{type(platform).__module__}.{type(platform).__qualname__}"
+    return _load_platform_class(qualname)()
 
 
-current_platform: OmniPlatform
+def _resolve_platform() -> OmniPlatform:
+    return _as_omni_platform(srt_platforms.current_platform)
+
+
+def get_platform_spec(platform: OmniPlatform) -> str:
+    if platform._omni_platform_qualname is not None:
+        return platform._omni_platform_qualname
+    return f"{type(platform).__module__}.{type(platform).__qualname__}"
+
+
 platform_spec = os.environ.get("SGLANG_OMNI_PLATFORM_SPEC")
-
-if platform_spec:
-    spec = ResolvedPlatformSpec(**json.loads(platform_spec))
-    if spec.platform_type == "cuda":
-        current_platform = CUDAOmniPlatform()
-    elif spec.platform_type == "npu":
-        current_platform = NPUOmniPlatform()
-    elif spec.platform_type == "cpu":
-        current_platform = CPUOmniPlatform()
-    else:
-        current_platform = OmniPlatform()
-
-else:
-    current_platform = _resolve_platform()
+current_platform = (
+    _load_platform_class(platform_spec)() if platform_spec else _resolve_platform()
+)
