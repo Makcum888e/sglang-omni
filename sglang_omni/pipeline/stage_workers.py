@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import gc
-import json
 import logging
 import multiprocessing
 import os
@@ -23,7 +22,7 @@ from sglang_omni.pipeline.stage.input import AggregatedInput, DirectInput
 from sglang_omni.pipeline.stage.runtime import Stage
 from sglang_omni.pipeline.stage.stream_queue import StreamQueue
 from sglang_omni.pipeline.tp_control import TPFollowerControlPlane, TPLeaderFanout
-from sglang_omni.platforms import current_platform
+from sglang_omni.platforms import current_platform, get_platform_spec
 from sglang_omni.utils.gpu_compat import (
     apply_gpu_compat_env_defaults,
     get_gpu_compat_env_defaults,
@@ -170,20 +169,12 @@ def _patched_spawn_env(spec: StageWorkerProcessSpec):
             **worker_process_env,
         }
     )
-    platform_spec_dict = {
-        "platform_type": current_platform.device_name,
-        "device_type": current_platform.device_type,
-    }
     updates = {
         **env_default_updates,
         **compat_env_defaults,
         **worker_process_env,
-        "SGLANG_OMNI_PLATFORM_SPEC": json.dumps(platform_spec_dict),
+        "SGLANG_OMNI_PLATFORM_SPEC": get_platform_spec(current_platform),
     }
-    if not updates:
-        yield
-        return
-
     backup = {key: os.environ.get(key) for key in updates}
     try:
         for key, value in updates.items():
