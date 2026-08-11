@@ -10,6 +10,7 @@ import pytest
 
 from sglang_omni.model_runner import model_worker
 from sglang_omni.platforms import cuda
+from sglang_omni.utils.misc import model_config_has_moe
 from tests.unit_test.fakes import FakeServerArgs
 
 
@@ -440,7 +441,7 @@ def test_model_config_has_moe_prefers_effective_text_config() -> None:
         hf_text_config=SimpleNamespace(num_experts_per_tok=8),
     )
 
-    assert model_worker._model_config_has_moe(model_config)
+    assert model_config_has_moe(model_config)
 
 
 @pytest.mark.parametrize(

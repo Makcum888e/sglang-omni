@@ -13,7 +13,7 @@ from sglang_omni.quantization import (
     normalize_quant_config,
     resolve_quant_config,
 )
-from sglang_omni.utils.misc import normalize_quantization
+from sglang_omni.utils.misc import model_config_has_moe
 from sglang_omni.vendor.sglang.server_args import override_server_args
 
 if TYPE_CHECKING:
@@ -449,20 +449,6 @@ def _resolve_nccl_port() -> int:
     return port
 
 
-def _model_config_has_moe(model_config: ModelConfig) -> bool:
-    return hasattr(model_config.hf_text_config, "num_experts_per_tok")
-
-
-def _model_config_has_native_fp8_block_quant(model_config: ModelConfig) -> bool:
-    quant_dict = resolve_quant_config(model_config.hf_config)
-    if quant_dict is None:
-        return False
-    return (
-        normalize_quantization(quant_dict.get("quant_method")) == "fp8"
-        and quant_dict.get("weight_block_size") is not None
-    )
-
-
 def _is_fp8_cutlass_moe_supported() -> bool:
     """Mirror SGLang 0.5.16's CUTLASS FP8 MoE assertions."""
     from sglang.srt.layers.quantization.fp8_utils import cutlass_fp8_supported
@@ -501,7 +487,7 @@ def _initialize_model_worker_backend_globals(
 ) -> None:
     """Initialize backend globals needed by direct workers before model loading."""
 
-    if _model_config_has_moe(model_config):
+    if model_config_has_moe(model_config):
         from sglang.srt.layers.moe import initialize_moe_config
 
         initialize_moe_config(server_args)

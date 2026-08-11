@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
@@ -8,10 +9,14 @@ from sglang.srt.platforms.cuda import CudaDeviceMixin
 from sglang.srt.platforms.rocm import RocmDeviceMixin
 
 from sglang_omni.platforms.interface import OmniPlatform
-from sglang_omni.utils.misc import normalize_quantization
+from sglang_omni.quantization import resolve_quant_config
+from sglang_omni.utils.misc import model_config_has_moe, normalize_quantization
+from sglang_omni.vendor.sglang.server_args import override_server_args
 
 if TYPE_CHECKING:
     from sglang_omni.pipeline.stage_workers import StageLaunchConfig
+
+logger = logging.getLogger(__name__)
 
 
 def _is_h20_device() -> bool:
@@ -90,9 +95,12 @@ class CUDAOmniPlatform(CudaDeviceMixin, OmniPlatform):
                 "Qwen3-Omni ModelWorker does not support expert parallelism; "
                 "use ep_size=1."
             )
-        has_moe = _model_config_has_moe(model_config)
-        has_native_fp8_block_quant = _model_config_has_native_fp8_block_quant(
-            model_config
+        has_moe = model_config_has_moe(model_config)
+        quant_dict = resolve_quant_config(model_config.hf_config)
+        has_native_fp8_block_quant = (
+            quant_dict is not None
+            and normalize_quantization(quant_dict.get("quant_method")) == "fp8"
+            and quant_dict.get("weight_block_size") is not None
         )
 
         if (
