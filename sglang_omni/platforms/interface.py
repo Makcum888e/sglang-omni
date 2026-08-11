@@ -26,6 +26,7 @@ class OmniPlatform(DeviceMixin):
         return {}
 
     def get_intra_node_transport(self) -> TransportKind:
+        """Get TransportKind between devices on the same node"""
         from sglang_omni.comm.data_ref import TransportKind
 
         return TransportKind.SHM
