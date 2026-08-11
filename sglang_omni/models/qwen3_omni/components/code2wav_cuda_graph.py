@@ -58,28 +58,30 @@ class _TorchCudaApi:
     """Small injectable boundary around CUDA-only operations."""
 
     def device_context(self, device: torch.device) -> AbstractContextManager[Any]:
-        return torch.cuda.device(device)
+        return torch.get_device_module().device(device)
 
     def memory_stats(self, device: torch.device) -> dict[str, int]:
-        free_bytes, total_bytes = torch.cuda.mem_get_info(device)
+        free_bytes, total_bytes = torch.get_device_module().mem_get_info(device)
         return {
-            "allocated_bytes": int(torch.cuda.memory_allocated(device)),
-            "reserved_bytes": int(torch.cuda.memory_reserved(device)),
-            "max_reserved_bytes": int(torch.cuda.max_memory_reserved(device)),
+            "allocated_bytes": int(torch.get_device_module().memory_allocated(device)),
+            "reserved_bytes": int(torch.get_device_module().memory_reserved(device)),
+            "max_reserved_bytes": int(
+                torch.get_device_module().max_memory_reserved(device)
+            ),
             "free_bytes": int(free_bytes),
             "total_bytes": int(total_bytes),
         }
 
     def empty_cache(self) -> None:
-        torch.cuda.empty_cache()
+        torch.get_device_module().empty_cache()
 
     def new_static_input(
         self, shape: tuple[int, int, int], *, device: torch.device
     ) -> torch.Tensor:
         return torch.zeros(shape, dtype=torch.long, device=device)
 
-    def new_stream(self, device: torch.device) -> torch.cuda.Stream:
-        return torch.cuda.Stream(device=device)
+    def new_stream(self, device: torch.device) -> torch.Stream:
+        return torch.get_device_module().Stream(device=device)
 
     def warmup(
         self,
@@ -88,17 +90,17 @@ class _TorchCudaApi:
         *,
         iterations: int,
         device: torch.device,
-        stream: torch.cuda.Stream,
+        stream: torch.Stream,
     ) -> None:
-        current_stream = torch.cuda.current_stream(device)
+        current_stream = torch.get_device_module().current_stream(device)
         stream.wait_stream(current_stream)
-        with torch.cuda.stream(stream), torch.inference_mode():
+        with torch.get_device_module().stream(stream), torch.inference_mode():
             for _ in range(iterations):
                 model(static_input)
         current_stream.wait_stream(stream)
 
     def graph_pool_handle(self) -> Any:
-        return torch.cuda.graph_pool_handle()
+        return torch.get_device_module().graph_pool_handle()
 
     def capture(
         self,
@@ -106,14 +108,14 @@ class _TorchCudaApi:
         static_input: torch.Tensor,
         *,
         pool: Any,
-        stream: torch.cuda.Stream,
-    ) -> tuple[torch.cuda.CUDAGraph, torch.Tensor]:
-        current_stream = torch.cuda.current_stream(static_input.device)
+        stream: torch.Stream,
+    ) -> tuple[Any, torch.Tensor]:
+        current_stream = torch.get_device_module().current_stream(static_input.device)
         stream.wait_stream(current_stream)
-        graph = torch.cuda.CUDAGraph()
+        graph = torch.get_device_module().CUDAGraph()
         try:
             with torch.inference_mode():
-                with torch.cuda.graph(
+                with torch.get_device_module().graph(
                     graph,
                     pool=pool,
                     stream=stream,
@@ -121,15 +123,15 @@ class _TorchCudaApi:
                 ):
                     static_output = model(static_input)
         finally:
-            # torch.cuda.graph.__exit__ calls capture_end before restoring its
+            # torch.get_device_module().graph.__exit__ calls capture_end before restoring its
             # stream context. If capture_end raises, restore explicitly using
             # the original stream's device-aware identity.
-            torch.cuda.set_stream(current_stream)
+            torch.get_device_module().set_stream(current_stream)
         current_stream.wait_stream(stream)
         return graph, static_output
 
     def synchronize(self, device: torch.device) -> None:
-        torch.cuda.synchronize(device)
+        torch.get_device_module().synchronize(device)
 
     def is_cuda_tensor(self, tensor: torch.Tensor) -> bool:
         return tensor.is_cuda
@@ -159,7 +161,7 @@ class Code2WavCudaGraphRunner:
     ) -> None:
         self._model = model
         self._device = torch.device(device)
-        if self._device.type != "cuda" or self._device.index is None:
+        if self._device.type == "cpu" or self._device.index is None:
             raise ValueError("Code2Wav CUDA graphs require a concrete CUDA device")
         self._num_quantizers = int(num_quantizers)
         if self._num_quantizers <= 0:
