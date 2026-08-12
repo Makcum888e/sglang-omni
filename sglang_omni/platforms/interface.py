@@ -59,3 +59,7 @@ class OmniPlatform(DeviceMixin):
             )
 
         return effective_quantization
+
+    def enable_code2wav_graph(self):
+        """Check if current platform support Graph for code2wav in Qwen3-Omni"""
+        return True
