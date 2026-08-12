@@ -80,21 +80,15 @@ class CUDAOmniPlatform(CudaDeviceMixin, OmniPlatform):
         model_arch_override: str | None,
     ) -> str | None:
 
-        effective_quantization = normalize_quantization(model_config.quantization)
-        server_quantization = normalize_quantization(server_args.quantization)
-        if server_quantization is not None:
-            effective_quantization = server_quantization
+        effective_quantization = super().apply_model_worker_backend_policy(
+            server_args, model_config, model_arch_override
+        )
 
         moe_runner_backend = server_args.moe_runner_backend
         is_qwen3_omni_arch = model_arch_override in (
             "Qwen3OmniTalker",
             "Qwen3OmniThinkerForCausalLM",
         )
-        if is_qwen3_omni_arch and server_args.ep_size != 1:
-            raise ValueError(
-                "Qwen3-Omni ModelWorker does not support expert parallelism; "
-                "use ep_size=1."
-            )
         has_moe = model_config_has_moe(model_config)
         quant_dict = resolve_quant_config(model_config.hf_config)
         has_native_fp8_block_quant = (
