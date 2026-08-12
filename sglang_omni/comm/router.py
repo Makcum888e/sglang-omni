@@ -62,7 +62,10 @@ class CommRouter:
         return target in self.same_process_targets
 
     def can_use_direct_cuda_ipc(self, target: str) -> bool:
-        return target in self._direct_cuda_ipc_targets
+        return (
+            target in self._direct_cuda_ipc_targets
+            and current_platform.get_intra_node_transport() == TransportKind.CUDA_IPC
+        )
 
     def outbound(self, target: str) -> TransportKind:
         if target in self.same_process_targets:
