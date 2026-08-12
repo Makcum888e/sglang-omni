@@ -9,9 +9,12 @@ from types import ModuleType, SimpleNamespace
 import pytest
 
 from sglang_omni.model_runner import model_worker
-from sglang_omni.platforms import cuda, current_platform
+from sglang_omni.platforms import cuda
+from sglang_omni.platforms.cuda import CUDAOmniPlatform
 from sglang_omni.utils.misc import model_config_has_moe
 from tests.unit_test.fakes import FakeServerArgs
+
+cuda_platform = CUDAOmniPlatform()
 
 
 class _StrictServerArgsDouble:
@@ -374,14 +377,14 @@ def test_model_worker_backend_policy_precedence(
 
     if case.error_match:
         with pytest.raises(ValueError, match=case.error_match):
-            current_platform.apply_model_worker_backend_policy(
+            cuda_platform.apply_model_worker_backend_policy(
                 server_args,
                 model_config,
                 case.model_arch_override,
             )
         return
 
-    effective_quantization = current_platform.apply_model_worker_backend_policy(
+    effective_quantization = cuda_platform.apply_model_worker_backend_policy(
         server_args,
         model_config,
         case.model_arch_override,
@@ -414,7 +417,7 @@ def test_model_worker_backend_policy_uses_strict_server_args_override(
         has_moe=True,
     )
 
-    effective_quantization = current_platform.apply_model_worker_backend_policy(
+    effective_quantization = cuda_platform.apply_model_worker_backend_policy(
         server_args,
         model_config,
         "Qwen3OmniTalker",
@@ -758,7 +761,7 @@ def test_configure_backend_policy_fp8_gemm_ordering(
 
     # Step 2: run the REAL apply_model_worker_backend_policy().
     # This is the arch-aware step that sets Talker FP8 Triton.
-    _ = current_platform.apply_model_worker_backend_policy(
+    _ = cuda_platform.apply_model_worker_backend_policy(
         server_args,
         model_config,
         case.model_arch_override,
