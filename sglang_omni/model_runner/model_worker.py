@@ -449,21 +449,6 @@ def _resolve_nccl_port() -> int:
     return port
 
 
-def _is_fp8_cutlass_moe_supported() -> bool:
-    """Mirror SGLang 0.5.16's CUTLASS FP8 MoE assertions."""
-    from sglang.srt.layers.quantization.fp8_utils import cutlass_fp8_supported
-    from sglang.srt.utils import (
-        is_sm90_supported,
-        is_sm100_supported,
-        is_sm120_supported,
-    )
-
-    return bool(
-        cutlass_fp8_supported()
-        and (is_sm90_supported() or is_sm100_supported() or is_sm120_supported())
-    )
-
-
 def _apply_omni_quantization_adapters(model_config: ModelConfig) -> None:
     """Apply Omni-specific quantization adapters before SGLang builds its config.
 

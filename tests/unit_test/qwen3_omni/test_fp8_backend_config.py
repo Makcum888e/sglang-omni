@@ -9,7 +9,7 @@ from types import ModuleType, SimpleNamespace
 import pytest
 
 from sglang_omni.model_runner import model_worker
-from sglang_omni.platforms import cuda
+from sglang_omni.platforms import cuda, current_platform
 from sglang_omni.utils.misc import model_config_has_moe
 from tests.unit_test.fakes import FakeServerArgs
 
@@ -355,7 +355,7 @@ def test_model_worker_backend_policy_precedence(
 ) -> None:
     """Covers quantization, architecture, MoE, hardware, and explicit override precedence."""
     monkeypatch.setattr(
-        model_worker,
+        cuda,
         "_is_fp8_cutlass_moe_supported",
         lambda: case.cutlass_supported,
     )
@@ -397,7 +397,7 @@ def test_model_worker_backend_policy_uses_strict_server_args_override(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        model_worker,
+        cuda,
         "_is_fp8_cutlass_moe_supported",
         lambda: True,
     )
@@ -477,7 +477,7 @@ def test_fp8_cutlass_moe_support_matches_sglang_0_5_16_contract(
         sm120_supported=sm120_supported,
     )
 
-    assert model_worker._is_fp8_cutlass_moe_supported() is expected_supported
+    assert cuda._is_fp8_cutlass_moe_supported() is expected_supported
 
 
 def test_backend_global_initialization_for_fp8_moe_model(monkeypatch) -> None:
