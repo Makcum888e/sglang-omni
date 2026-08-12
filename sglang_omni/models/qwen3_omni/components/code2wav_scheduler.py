@@ -266,7 +266,7 @@ class Code2WavScheduler(StreamingVocoderBase[Code2WavStreamState, "list[int]"]):
         graph_eligible: bool = False,
     ) -> tuple[torch.Tensor, dict[str, Any]]:
         with torch.no_grad():
-            torch.get_device_module().set_device(self._device)
+            torch.get_device_module(self._device).set_device(self._device)
             if self._cuda_graph_runner is None:
                 result = Code2WavRunResult(
                     output=self._model(codes),
