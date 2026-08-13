@@ -377,6 +377,10 @@ def test_model_worker_backend_policy_precedence(
 
     if case.error_match:
         with pytest.raises(ValueError, match=case.error_match):
+            model_worker._apply_model_worker_backend_common_policy(
+                server_args,
+                case.model_arch_override,
+            )
             cuda_platform.apply_model_worker_backend_policy(
                 server_args,
                 model_config,
@@ -384,6 +388,10 @@ def test_model_worker_backend_policy_precedence(
             )
         return
 
+    model_worker._apply_model_worker_backend_common_policy(
+        server_args,
+        case.model_arch_override,
+    )
     effective_quantization = cuda_platform.apply_model_worker_backend_policy(
         server_args,
         model_config,
@@ -417,6 +425,10 @@ def test_model_worker_backend_policy_uses_strict_server_args_override(
         has_moe=True,
     )
 
+    model_worker._apply_model_worker_backend_common_policy(
+        server_args,
+        "Qwen3OmniTalker",
+    )
     effective_quantization = cuda_platform.apply_model_worker_backend_policy(
         server_args,
         model_config,
@@ -761,6 +773,10 @@ def test_configure_backend_policy_fp8_gemm_ordering(
 
     # Step 2: run the REAL apply_model_worker_backend_policy().
     # This is the arch-aware step that sets Talker FP8 Triton.
+    model_worker._apply_model_worker_backend_common_policy(
+        server_args,
+        case.model_arch_override,
+    )
     _ = cuda_platform.apply_model_worker_backend_policy(
         server_args,
         model_config,

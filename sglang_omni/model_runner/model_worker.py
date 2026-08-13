@@ -152,6 +152,11 @@ class ModelWorker:
         # model_worker backend policy.
         _apply_omni_quantization_adapters(self.model_config)
 
+        _apply_model_worker_backend_common_policy(
+            self.server_args,
+            self.model_arch_override,
+        )
+
         effective_quantization = current_platform.apply_model_worker_backend_policy(
             self.server_args,
             self.model_config,
@@ -447,6 +452,21 @@ def _resolve_nccl_port() -> int:
 
     os.environ["MASTER_PORT"] = str(port)
     return port
+
+
+def _apply_model_worker_backend_common_policy(
+    server_args: ServerArgs,
+    model_arch_override: str | None,
+) -> str | None:
+    is_qwen3_omni_arch = model_arch_override in (
+        "Qwen3OmniTalker",
+        "Qwen3OmniThinkerForCausalLM",
+    )
+    if is_qwen3_omni_arch and server_args.ep_size != 1:
+        raise ValueError(
+            "Qwen3-Omni ModelWorker does not support expert parallelism; "
+            "use ep_size=1."
+        )
 
 
 def _apply_omni_quantization_adapters(model_config: ModelConfig) -> None:

@@ -47,17 +47,6 @@ class OmniPlatform(DeviceMixin):
         server_quantization = normalize_quantization(server_args.quantization)
         if server_quantization is not None:
             effective_quantization = server_quantization
-
-        is_qwen3_omni_arch = model_arch_override in (
-            "Qwen3OmniTalker",
-            "Qwen3OmniThinkerForCausalLM",
-        )
-        if is_qwen3_omni_arch and server_args.ep_size != 1:
-            raise ValueError(
-                "Qwen3-Omni ModelWorker does not support expert parallelism; "
-                "use ep_size=1."
-            )
-
         return effective_quantization
 
     def enable_code2wav_graph(self):
