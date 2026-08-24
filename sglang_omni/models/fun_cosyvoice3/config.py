@@ -31,6 +31,14 @@ class FunCosyVoice3PipelineConfig(PipelineConfig):
     def process_local_edges(cls) -> frozenset[tuple[str, str]]:
         return frozenset({("preprocessing", "tts_engine")})
 
+    @classmethod
+    def talker_role_to_stage(cls) -> dict[str, str]:
+        return {"talker": "tts_engine"}
+
+    @classmethod
+    def talker_sglang_role_to_stage(cls) -> dict[str, str]:
+        return {"talker": "tts_engine"}
+
     model_path: str
     stages: list[StageConfig] = [
         StageConfig(
