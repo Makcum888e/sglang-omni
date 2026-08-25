@@ -81,7 +81,7 @@ CosyVoice3 example
 Start server
 
 ```bash
-sgl-omni serve --model-path /path/to/FunAudioLLM/Fun-CosyVoice3-0.5B-2512/ --config examples/configs/fun_cosyvoice3_0_5b.yaml --talker-cuda-graph off --port 8000
+sgl-omni serve --model-path /path/to/FunAudioLLM/Fun-CosyVoice3-0.5B-2512/ --config examples/configs/fun_cosyvoice3_0_5b.yaml --port 8000
 ```
 
 Run client
