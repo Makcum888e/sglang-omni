@@ -7,7 +7,9 @@ Installs `sglang-omni` for **Ascend NPUs**.
 
 First install upstream SGLang ([Ascend NPU docs](https://docs.sglang.io/docs/hardware-platforms/ascend-npus/getting-started/installation))
 
-## Install SGL-Omni
+## Install from source
+
+> we only support manual install now due to temporary CI resource limitations. We are actively working on a resolution.
 
 Install SGL-Omni using `pyproject_npu.toml`.
 
