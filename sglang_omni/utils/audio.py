@@ -244,7 +244,8 @@ def load_audio(
         trimmed, _ = librosa.effects.trim(audio.numpy(), top_db=trim_top_db)
         audio = torch.from_numpy(trimmed)
     if sample_rate != target_sample_rate:
-        if current_platform.supports_torchaudio_resample():
+        if True or current_platform.supports_torchaudio_resample():
+            # Bug
             audio = torchaudio.functional.resample(
                 audio,
                 int(sample_rate),
