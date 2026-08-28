@@ -33,8 +33,28 @@ Follow CosyVoice guide ([CosyVoice guide](../cookbook/fun_cosyvoice3.md)) except
 
 ## Serve
 
+### Qwen3-Omni example
 
-CosyVoice3 example
+Start server
+
+```bash
+sgl-omni serve --model-path /home/weights/Qwen/Qwen3-Omni-30B-A3B-Instruct/ --thinker.gpu [2,3] --thinker.tp_size 2 --talker_ar.gpu 1 --talker_ar.engine.disable_cuda_graph on --port 8000
+```
+
+Run client
+
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3-omni",
+    "messages": [{"role": "user", "content": "Explain the system architecture for a scalable audio generation pipeline. Answer in 15 words."}],
+    "modalities": ["text", "audio"]
+  }' \
+  -o output.json
+```
+
+### CosyVoice3 example
 
 Start server
 
@@ -58,7 +78,7 @@ curl -X POST http://localhost:8000/v1/audio/speech \
 
 Health check for any of the above: `curl http://localhost:8000/v1/models`.
 
-> **Expected on XPU:** `Failed to import mooncake` / `Failed to import nixl` warnings are harmless
+> **Expected on NPU:** `Failed to import mooncake` / `Failed to import nixl` warnings are harmless
 > — those CUDA-only transfer backends are omitted; tensors move through the `shm` relay instead.
 
 > ✅ Support status: **CosyVoice3 serve end-to-end on Ascend NPU**
