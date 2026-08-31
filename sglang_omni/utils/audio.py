@@ -99,6 +99,20 @@ def _is_riff_wav(data: bytes) -> bool:
     return len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WAVE"
 
 
+def _resample_with_scipy(
+    audio_np: np.ndarray, sample_rate: int, target_sample_rate: int
+) -> np.ndarray:
+    import scipy.signal
+
+    orig_freq = int(sample_rate)
+    new_freq = target_sample_rate
+    gcd = math.gcd(orig_freq, new_freq)
+    up = new_freq // gcd
+    down = orig_freq // gcd
+    resampled_np = scipy.signal.resample_poly(audio_np, up, down, axis=-1)
+    return resampled_np.astype(np.float32)
+
+
 def _try_fast_wav_decode(
     data: bytes,
     target_sample_rate: int,
@@ -127,15 +141,7 @@ def _try_fast_wav_decode(
         )
         return resampled.numpy()
     else:
-        import scipy.signal
-
-        orig_freq = int(sample_rate)
-        new_freq = target_sample_rate
-        gcd = math.gcd(orig_freq, new_freq)
-        up = new_freq // gcd
-        down = orig_freq // gcd
-        resampled_np = scipy.signal.resample_poly(audio, up, down, axis=-1)
-        return resampled_np.astype(np.float32)
+        return _resample_with_scipy(audio, sample_rate, target_sample_rate)
 
 
 @functools.lru_cache(maxsize=32)
@@ -263,15 +269,10 @@ def load_audio(
                 **dict(resample_kwargs or {}),
             )
         else:
-            import scipy.signal
-
-            orig_freq = int(sample_rate)
-            new_freq = target_sample_rate
-            gcd = math.gcd(orig_freq, new_freq)
-            up = new_freq // gcd
-            down = orig_freq // gcd
             waveform_np = audio.cpu().numpy()
-            resampled_np = scipy.signal.resample_poly(waveform_np, up, down, axis=-1)
+            resampled_np = _resample_with_scipy(
+                waveform_np, int(sample_rate), target_sample_rate
+            )
             audio = torch.from_numpy(resampled_np).float()
     if mono:
         audio = audio.squeeze(0)
