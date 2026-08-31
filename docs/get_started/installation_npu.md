@@ -49,7 +49,7 @@ are intentionally not exposed during the build.
 Models in the TTS models utilize **`torchcodec`** for high-efficiency, native-streaming audio decoding directly into PyTorch tensors.
 
 The helper script `scripts/npu/install_npu_torchcodec.sh` automatically installs:
-* **Audio codecs:** `ffmpeg`, `sox`
+* **Audio codec:** `ffmpeg`
 * **CANN 9.1.0 stack:** `toolkit`, `A3-ops`, `nnal`
 * **PyTorch 2.11 stack:** `torch`, `torchvision`, `torchaudio`, `torch_npu`, `torchcodec`
 
