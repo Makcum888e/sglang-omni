@@ -1,6 +1,7 @@
 # Extra installations for CosyVoice3
-set -eo pipefail
+set -euo pipefail
 PYPROJECT_BACKUP=$(mktemp)
+DEVICE_TYPE=${1:?"Error: DEVICE_TYPE argument is required. Usage: $0 [910b|A3]"}
 
 cleanup() {
     echo "restoring original pyproject.toml..."
@@ -20,16 +21,16 @@ apt update && apt install -y ffmpeg libavcodec-dev libavformat-dev libavutil-dev
 
 # Download and install CANN 9.1.0
 wget --header="Referer: https://www.hiascend.com/" https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.0/Ascend-cann-toolkit_9.1.0_linux-"$(uname -i)".run
-wget --header="Referer: https://www.hiascend.com/" https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.0/Ascend-cann-A3-ops_9.1.0_linux-"$(uname -i)".run
+wget --header="Referer: https://www.hiascend.com/" https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.0/Ascend-cann-${DEVICE_TYPE}-ops_9.1.0_linux-"$(uname -i)".run
 wget --header="Referer: https://www.hiascend.com/" https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.0/Ascend-cann-nnal_9.1.0_linux-"$(uname -i)".run
 
 chmod +x ./Ascend-cann-toolkit_9.1.0_linux-"$(uname -i)".run
-chmod +x ./Ascend-cann-A3-ops_9.1.0_linux-"$(uname -i)".run
+chmod +x ./Ascend-cann-${DEVICE_TYPE}-ops_9.1.0_linux-"$(uname -i)".run
 chmod +x ./Ascend-cann-nnal_9.1.0_linux-"$(uname -i)".run
 
 ./Ascend-cann-toolkit_9.1.0_linux-"$(uname -i)".run --install
 source /usr/local/Ascend/cann/set_env.sh
-./Ascend-cann-A3-ops_9.1.0_linux-"$(uname -i)".run --install
+./Ascend-cann-${DEVICE_TYPE}-ops_9.1.0_linux-"$(uname -i)".run --install
 source /usr/local/Ascend/cann/set_env.sh
 ./Ascend-cann-nnal_9.1.0_linux-"$(uname -i)".run --install
 source /usr/local/Ascend/nnal/atb/set_env.sh
