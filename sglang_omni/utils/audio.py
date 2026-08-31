@@ -118,13 +118,24 @@ def _try_fast_wav_decode(
     if sample_rate == target_sample_rate:
         return audio
 
-    resampled = _cached_resample(
-        torch.from_numpy(audio),
-        sample_rate,
-        target_sample_rate,
-        resample_kwargs,
-    )
-    return resampled.numpy()
+    if current_platform.supports_torchaudio_resample():
+        resampled = _cached_resample(
+            torch.from_numpy(audio),
+            sample_rate,
+            target_sample_rate,
+            resample_kwargs,
+        )
+        return resampled.numpy()
+    else:
+        import scipy.signal
+
+        orig_freq = int(sample_rate)
+        new_freq = target_sample_rate
+        gcd = math.gcd(orig_freq, new_freq)
+        up = new_freq // gcd
+        down = orig_freq // gcd
+        resampled_np = scipy.signal.resample_poly(audio, up, down, axis=-1)
+        return resampled_np.astype(np.float32)
 
 
 @functools.lru_cache(maxsize=32)
