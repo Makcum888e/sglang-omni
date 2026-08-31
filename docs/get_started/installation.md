@@ -6,7 +6,7 @@ Two install paths. Docker is recommended — UCX, flash-attn, sglang, and CUDA a
 
 > **Intel GPU (XPU)?** This page targets **NVIDIA CUDA**. For Intel Arc GPUs, see [Installation — Intel XPU](./installation_xpu.md), which uses [`pyproject_xpu.toml`](../../pyproject_xpu.toml) + the PyTorch XPU wheel index instead of the CUDA-only pins below.
 
-> **Ascend NPU?** This page targets **NVIDIA CUDA**. For Ascend NPUs, see [Installation — Ascend NPU](./installation_npu.md), which uses [`pyproject_npu.toml`](../../pyproject_npu.toml) + the NPU stack instead of the CUDA-only pins below.
+> **Ascend NPU?** See [Installation — Ascend NPU](./installation_npu.md) for the supported software stack, prerequisites, and installation helper.
 
 ## 🐳 Option A: Docker (recommended)
 

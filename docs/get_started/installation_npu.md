@@ -1,84 +1,45 @@
-# 🚀 Installation — Ascend NPU
+# Installation — Ascend NPU
 
-Installs `sglang-omni` for **Ascend NPUs**.
-
+Install the Ascend software stack and NPU build of SGLang before installing
+`sglang-omni`. The helper script
+[`install_npu.sh`](../../scripts/npu/install_npu.sh) installs only
+`sglang-omni`; it does not install or change any prerequisite in the table below.
 
 ## Prerequisites
 
-First install upstream SGLang ([Ascend NPU docs](https://docs.sglang.io/docs/hardware-platforms/ascend-npus/getting-started/installation))
+Select mutually compatible versions for your Ascend hardware by following the
+linked documentation. Python 3.11 is the verified configuration.
 
-## Install from source
+| Component | Version | Required | Manual installation | Installation |
+|-----------|---------|----------|---------------------|--------------|
+| CANN toolkit | Compatible release | Yes | Yes | [Official documentation](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0008.html) |
+| HDK (driver and firmware) | Match the hardware and CANN release | Yes | Yes | [Official documentation](https://www.hiascend.com/hardware/firmware-drivers/community) |
+| PyTorch and `torch_npu` | Matching releases | Yes | Yes | [Official documentation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=177&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C) |
+| `triton-ascend` | Match the selected PyTorch and CANN releases | Yes | Yes | [Official documentation](https://gitcode.com/Ascend/triton-ascend/blob/main/docs/en/quick_start.md) |
+| `sgl-kernel-npu` | Match PyTorch, Python, CANN, hardware, and architecture | Yes | Yes | [Official documentation](https://github.com/sgl-project/sgl-kernel-npu/releases) |
+| `memfabric-hybrid` | Compatible release | No (PD disaggregation only) | Yes | [Official documentation](https://docs.sglang.io/docs/hardware-platforms/ascend-npus/ascend_npu) |
+| SGLang for NPU | `v0.5.18` | Yes | Yes | [Official documentation](https://docs.sglang.io/docs/hardware-platforms/ascend-npus/ascend_npu) |
 
-> we only support manual install now due to temporary CI resource limitations. We are actively working on a resolution.
-
-Install SGL-Omni using `pyproject_npu.toml`.
-
-```bash
-cp pyproject.toml .pyproject.cuda.bak
-cp pyproject_npu.toml pyproject.toml
-pip install -v -e .
-cp -f .pyproject.cuda.bak pyproject.toml && rm .pyproject.cuda.bak   # restore CUDA pyproject
-```
-
-## CosyVoice extra
-
-Install all extra dependency for NPU first
+## Install sglang-omni
 
 ```bash
-bash scripts/ci/npu/install_npu.sh
+git clone https://github.com/sgl-project/sglang-omni.git
+cd sglang-omni
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
+
+# Check the environment and show the installation command without changing files.
+bash scripts/npu/install_npu.sh --check
+
+# Install sglang-omni in editable mode.
+bash scripts/npu/install_npu.sh
 ```
 
-Follow CosyVoice guide ([CosyVoice guide](../cookbook/fun_cosyvoice3.md)) except SGL-Omni installation.
-
-
-## Serve
-
-### Qwen3-Omni example
-
-Start server
-
-```bash
-sgl-omni serve --model-path /home/weights/Qwen/Qwen3-Omni-30B-A3B-Instruct/ --thinker.gpu [2,3] --thinker.tp_size 2 --talker_ar.gpu 1 --talker_ar.engine.disable_cuda_graph on --port 8000
-```
-
-Run client
-
-```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen3-omni",
-    "messages": [{"role": "user", "content": "Explain the system architecture for a scalable audio generation pipeline. Answer in 15 words."}],
-    "modalities": ["text", "audio"]
-  }' \
-  -o output.json
-```
-
-### CosyVoice3 example
-
-Start server
-
-```bash
-sgl-omni serve --model-path /path/to/FunAudioLLM/Fun-CosyVoice3-0.5B-2512/ --config examples/configs/fun_cosyvoice3_0_5b.yaml --port 8000
-```
-
-Run client
-
-```bash
-curl -X POST http://localhost:8000/v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "FunAudioLLM/Fun-CosyVoice3-0.5B-2512",
-    "input": "SGLang-Omni makes text-to-speech fast and easy to deploy.",
-    "ref_audio": "/path/to/ref_audio.wav",
-    "ref_text": "We asked over twenty different people, and they all said it was his."
-  }' \
-  --output output.wav
-```
-
-Health check for any of the above: `curl http://localhost:8000/v1/models`.
-
-> **Expected on NPU:** `Failed to import mooncake` / `Failed to import nixl` warnings are harmless
-> — those CUDA-only transfer backends are omitted; tensors move through the `shm` relay instead.
-
-> ✅ Support status: **CosyVoice3 serve end-to-end on Ascend NPU**
+The precheck accepts the SGLang `0.5.18` release line. This includes development,
+pre-release, post-release, and local builds whose numeric release segment starts
+with `0.5.18`, such as `0.5.18.dev7+g<git-sha>`. It rejects other release lines,
+including later releases. On a mismatch it reports both the supported line and
+the installed version. The precheck also verifies the required Python packages,
+matching `torch` and `torch_npu` major-minor versions, NPU availability, and a
+small NPU matrix multiplication. Run `bash scripts/npu/install_npu.sh --help`
+for optional extras, non-editable installation, and environments where devices
+are intentionally not exposed during the build.
